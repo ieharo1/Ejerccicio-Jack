@@ -10,14 +10,14 @@ return new class extends Migration
     {
         Schema::create('vehiculos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('cliente_id')->constrained('clientes')->onDelete('cascade');
-            $table->string('placa')->unique();
-            $table->string('marca');
-            $table->string('modelo');
+            $table->string('placa', 20)->unique();
+            $table->string('marca', 50);
+            $table->string('modelo', 50);
             $table->integer('año');
-            $table->string('color')->nullable();
-            $table->string('vin')->nullable();
+            $table->string('color', 30)->nullable();
+            $table->string('vin', 50)->nullable();
             $table->integer('kilometraje')->default(0);
+            $table->foreignId('cliente_id')->constrained('clientes')->onDelete('cascade');
             $table->timestamps();
         });
     }

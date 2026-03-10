@@ -1,53 +1,126 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ClienteController;
-use App\Http\Controllers\VehiculoController;
-use App\Http\Controllers\OrdenRecepcionController;
-use App\Http\Controllers\OrdenServicioController;
-use App\Http\Controllers\RepuestoController;
-use App\Http\Controllers\ProveedorController;
-use App\Http\Controllers\CompraController;
-use App\Http\Controllers\ServicioController;
-use App\Http\Controllers\IngresoController;
-use App\Http\Controllers\CuentaBancariaController;
-use App\Http\Controllers\ServicioProgramadoController;
-use App\Http\Controllers\ReporteController;
+use App\Models\Cliente;
+use App\Models\Vehiculo;
+use App\Models\OrdenRecepcion;
+use App\Models\OrdenServicio;
+use App\Models\Repuesto;
+use App\Models\Proveedor;
+use App\Models\Compra;
+use App\Models\CuentaBancaria;
+use App\Models\Ingreso;
+use App\Models\ServicioProgramado;
+
+function dashboardStats(): array
+{
+    return [
+        'clientes' => Cliente::count(),
+        'vehiculos' => Vehiculo::count(),
+        'ordenes_abiertas' => OrdenServicio::whereIn('estado', ['recepcion', 'diagnostico', 'repuestos', 'aprobacion', 'reparacion', 'control'])->count(),
+        'ordenes_terminadas' => OrdenServicio::whereIn('estado', ['entrega', 'archivado'])->count(),
+        'ingresos_mes' => Ingreso::whereMonth('fecha', date('m'))->sum('monto'),
+        'compras_mes' => Compra::whereMonth('fecha', date('m'))->sum('total'),
+        'repuestos_bajos' => Repuesto::whereRaw('stock < stock_minimo')->count(),
+    ];
+}
 
 Route::get('/', function () {
-    return redirect('/dashboard');
+    return view('modules.dashboard', ['stats' => dashboardStats()]);
 });
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/vehiculos-por-cliente/{cliente_id}', function($cliente_id) {
-        return \App\Models\Vehiculo::where('cliente_id', $cliente_id)->get();
-    });
-    
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
-    Route::resource('clientes', ClienteController::class);
-    Route::resource('vehiculos', VehiculoController::class);
-    Route::resource('recepciones', OrdenRecepcionController::class);
-    Route::resource('ordenes', OrdenServicioController::class);
-    Route::post('ordenes/{orden}/estado', [OrdenServicioController::class, 'cambiarEstado'])->name('ordenes.estado');
-    
-    Route::resource('repuestos', RepuestoController::class);
-    Route::resource('proveedores', ProveedorController::class);
-    Route::resource('compras', CompraController::class);
-    Route::resource('servicios', ServicioController::class);
-    Route::resource('ingresos', IngresoController::class);
-    Route::resource('bancos', CuentaBancariaController::class);
-    Route::post('bancos/{cuenta}/movimiento', [CuentaBancariaController::class, 'movimiento'])->name('bancos.movimiento');
-    
-    Route::resource('crm', ServicioProgramadoController::class);
-    Route::get('crm/kanban', [ServicioProgramadoController::class, 'kanban'])->name('crm.kanban');
-    Route::post('crm/{programado}/estado', [ServicioProgramadoController::class, 'actualizarEstado'])->name('crm.estado');
-    
-    Route::get('reportes', [ReporteController::class, 'index'])->name('reportes.index');
-    Route::post('reportes/generar', [ReporteController::class, 'generar'])->name('reportes.generar');
-    Route::post('reportes/pdf', [ReporteController::class, 'exportarPdf'])->name('reportes.pdf');
-    Route::post('reportes/excel', [ReporteController::class, 'exportarExcel'])->name('reportes.excel');
+Route::get('/api/module/{module}', function ($module) {
+    return match ($module) {
+        'dashboard' => view('modules.dashboard', ['stats' => dashboardStats()])->render(),
+        'clientes' => view('modules.clientes')->render(),
+        'vehiculos' => view('modules.vehiculos')->render(),
+        'recepciones' => view('modules.recepciones')->render(),
+        'servicios' => view('modules.servicios')->render(),
+        'repuestos' => view('modules.repuestos')->render(),
+        'proveedores' => view('modules.proveedores')->render(),
+        'compras' => view('modules.compras')->render(),
+        'ingresos' => view('modules.ingresos')->render(),
+        'bancos' => view('modules.bancos')->render(),
+        'crm' => view('modules.crm')->render(),
+        'reportes' => view('modules.reportes')->render(),
+        'usuarios' => view('modules.usuarios')->render(),
+        default => '<div class="alert">Modulo no encontrado</div>',
+    };
 });
 
-require __DIR__.'/auth.php';
+Route::post('/api/clientes', function () {
+    Cliente::create(request()->all());
+    return ['success' => true];
+});
+
+Route::post('/api/vehiculos', function () {
+    Vehiculo::create(request()->all());
+    return ['success' => true];
+});
+
+Route::post('/api/recepciones', function () {
+    $data = request()->all();
+    $data['consecutivo'] = 'REC-' . date('Ymd') . '-' . str_pad(OrdenRecepcion::count() + 1, 4, '0', STR_PAD_LEFT);
+    OrdenRecepcion::create($data);
+    return ['success' => true];
+});
+
+Route::post('/api/ordenes', function () {
+    $data = request()->all();
+    $data['numero_orden'] = OrdenServicio::generarNumeroOrden();
+    OrdenServicio::create($data);
+    return ['success' => true];
+});
+
+Route::post('/api/repuestos', function () {
+    Repuesto::create(request()->all());
+    return ['success' => true];
+});
+
+Route::post('/api/proveedores', function () {
+    Proveedor::create(request()->all());
+    return ['success' => true];
+});
+
+Route::post('/api/compras', function () {
+    $data = request()->all();
+    $compra = Compra::create($data);
+
+    if (isset($data['items'])) {
+        foreach ($data['items'] as $item) {
+            $item['compra_id'] = $compra->id;
+            \App\Models\CompraItem::create($item);
+        }
+    }
+
+    $compra->calcularTotal();
+    return ['success' => true];
+});
+
+Route::post('/api/cuentas', function () {
+    CuentaBancaria::create(request()->all());
+    return ['success' => true];
+});
+
+Route::post('/api/ingresos', function () {
+    $data = request()->all();
+    $ingreso = Ingreso::create($data);
+
+    if ($ingreso->cuenta_bancaria_id) {
+        $cuenta = $ingreso->cuentaBancaria;
+        $cuenta->actualizarSaldo($ingreso->monto, 'ingreso');
+    }
+
+    return ['success' => true];
+});
+
+Route::post('/api/servicios-programados', function () {
+    ServicioProgramado::create(request()->all());
+    return ['success' => true];
+});
+
+Route::get('/api/clientes', fn () => Cliente::all());
+Route::get('/api/vehiculos/cliente/{id}', fn ($id) => Vehiculo::where('cliente_id', $id)->get());
+Route::get('/api/repuestos', fn () => Repuesto::all());
+Route::get('/api/proveedores', fn () => Proveedor::all());
+Route::get('/api/cuentas', fn () => CuentaBancaria::all());

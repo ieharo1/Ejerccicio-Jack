@@ -2,46 +2,31 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Repuesto extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'codigo',
-        'nombre',
-        'categoria_id',
-        'marca',
-        'stock',
-        'stock_minimo',
-        'precio_compra',
-        'precio_venta',
-        'proveedor_id',
-        'activo',
+        'codigo', 'nombre', 'categoria', 'marca', 'stock', 
+        'stock_minimo', 'precio_compra', 'precio_venta', 
+        'proveedor_id', 'descripcion'
     ];
 
     protected $casts = [
+        'stock' => 'integer',
+        'stock_minimo' => 'integer',
         'precio_compra' => 'decimal:2',
         'precio_venta' => 'decimal:2',
-        'activo' => 'boolean',
     ];
-
-    public function categoria(): BelongsTo
-    {
-        return $this->belongsTo(CategoriaRepuesto::class);
-    }
 
     public function proveedor(): BelongsTo
     {
         return $this->belongsTo(Proveedor::class);
     }
 
-    public function compraItems(): HasMany
+    public function getStockBajoAttribute()
     {
-        return $this->hasMany(CompraItem::class);
+        return $this->stock < $this->stock_minimo;
     }
 }

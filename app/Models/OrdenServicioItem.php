@@ -2,25 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrdenServicioItem extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'orden_servicio_id',
-        'servicio_id',
-        'item',
-        'cantidad',
-        'precio',
-        'impuesto',
-        'subtotal',
+        'orden_servicio_id', 'repuesto_id', 'item', 'cantidad',
+        'precio', 'impuesto', 'subtotal', 'tipo'
     ];
 
     protected $casts = [
+        'cantidad' => 'integer',
         'precio' => 'decimal:2',
         'impuesto' => 'decimal:2',
         'subtotal' => 'decimal:2',
@@ -31,8 +24,14 @@ class OrdenServicioItem extends Model
         return $this->belongsTo(OrdenServicio::class);
     }
 
-    public function servicio(): BelongsTo
+    public function repuesto(): BelongsTo
     {
-        return $this->belongsTo(Servicio::class);
+        return $this->belongsTo(Repuesto::class);
+    }
+
+    public function calcularSubtotal()
+    {
+        $this->subtotal = $this->cantidad * $this->precio;
+        $this->save();
     }
 }

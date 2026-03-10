@@ -8,21 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('clientes', function (Blueprint $table) {
+        Schema::create('proveedores', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->string('cedula_ruc', 20)->unique();
-            $table->string('telefono', 20);
+            $table->string('telefono', 20)->nullable();
             $table->string('email')->nullable();
             $table->text('direccion')->nullable();
-            $table->string('ciudad', 100)->nullable();
-            $table->text('observaciones')->nullable();
+            $table->string('contacto', 100)->nullable();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('clientes');
+        Schema::dropIfExists('proveedores');
     }
 };

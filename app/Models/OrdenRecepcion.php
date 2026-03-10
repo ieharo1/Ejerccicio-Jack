@@ -2,32 +2,19 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrdenRecepcion extends Model
 {
-    use HasFactory;
+    protected $table = 'ordenes_recepcion';
 
     protected $fillable = [
-        'consecutivo',
-        'fecha',
-        'cliente_id',
-        'vehiculo_id',
-        'motivo_ingreso',
-        'comentarios',
-        'tecnico',
-        'fecha_vencimiento',
-        'kilometraje',
-        'nivel_combustible',
-        'fluidos_adecuados',
-        'objetos_valor',
-        'inventario_interior',
-        'daños_visibles',
-        'fotos',
-        'estado',
+        'consecutivo', 'fecha', 'cliente_id', 'vehiculo_id',
+        'motivo_ingreso', 'comentarios', 'tecnico', 
+        'fecha_vencimiento', 'kilometraje', 'nivel_combustible',
+        'fluidos_adecuados', 'objetos_valor', 'inventario_interior',
+        'daños_visibles'
     ];
 
     protected $casts = [
@@ -44,10 +31,5 @@ class OrdenRecepcion extends Model
     public function vehiculo(): BelongsTo
     {
         return $this->belongsTo(Vehiculo::class);
-    }
-
-    public function ordenServicios(): HasMany
-    {
-        return $this->hasMany(OrdenServicio::class);
     }
 }

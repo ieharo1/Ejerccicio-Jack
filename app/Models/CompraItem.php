@@ -2,23 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CompraItem extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'compra_id',
-        'repuesto_id',
-        'cantidad',
-        'precio_unitario',
-        'subtotal',
+        'compra_id', 'repuesto_id', 'cantidad', 'precio_unitario', 'subtotal'
     ];
 
     protected $casts = [
+        'cantidad' => 'integer',
         'precio_unitario' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
@@ -31,5 +25,17 @@ class CompraItem extends Model
     public function repuesto(): BelongsTo
     {
         return $this->belongsTo(Repuesto::class);
+    }
+
+    public static function boot()
+    {
+        parent::boot();
+        
+        static::saved(function ($item) {
+            if ($item->repuesto) {
+                $item->repuesto->stock += $item->cantidad;
+                $item->repuesto->save();
+            }
+        });
     }
 }
