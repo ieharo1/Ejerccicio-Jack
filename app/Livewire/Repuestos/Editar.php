@@ -1,0 +1,96 @@
+<?php
+
+namespace App\Livewire\Repuestos;
+
+use Livewire\Component;
+use App\Models\Repuesto;
+use App\Models\CategoriaRepuesto;
+use App\Models\Proveedor;
+
+class Editar extends Component
+{
+    public $repuestoId = null;
+    public $codigo = '';
+    public $nombre = '';
+    public $categoria_id = '';
+    public $marca = '';
+    public $stock = 0;
+    public $stock_minimo = 0;
+    public $precio_compra = '';
+    public $precio_venta = '';
+    public $proveedor_id = '';
+    public $activo = true;
+    public $modalOpen = false;
+
+    protected $rules = [
+        'codigo' => 'required|string|max:50',
+        'nombre' => 'required|string|max:255',
+        'categoria_id' => 'nullable|exists:categoria_repuestos,id',
+        'marca' => 'nullable|string|max:100',
+        'stock' => 'required|integer|min:0',
+        'stock_minimo' => 'required|integer|min:0',
+        'precio_compra' => 'required|numeric|min:0',
+        'precio_venta' => 'required|numeric|min:0',
+        'proveedor_id' => 'nullable|exists:proveedors,id',
+        'activo' => 'boolean',
+    ];
+
+    public function openModal($id)
+    {
+        $this->repuestoId = $id;
+        $repuesto = Repuesto::findOrFail($id);
+        $this->codigo = $repuesto->codigo;
+        $this->nombre = $repuesto->nombre;
+        $this->categoria_id = $repuesto->categoria_id;
+        $this->marca = $repuesto->marca;
+        $this->stock = $repuesto->stock;
+        $this->stock_minimo = $repuesto->stock_minimo;
+        $this->precio_compra = $repuesto->precio_compra;
+        $this->precio_venta = $repuesto->precio_venta;
+        $this->proveedor_id = $repuesto->proveedor_id;
+        $this->activo = $repuesto->activo;
+        $this->modalOpen = true;
+    }
+
+    public function closeModal()
+    {
+        $this->modalOpen = false;
+    }
+
+    public function update()
+    {
+        $this->validate();
+
+        $repuesto = Repuesto::findOrFail($this->repuestoId);
+        $repuesto->update([
+            'codigo' => $this->codigo,
+            'nombre' => $this->nombre,
+            'categoria_id' => $this->categoria_id ?: null,
+            'marca' => $this->marca,
+            'stock' => $this->stock,
+            'stock_minimo' => $this->stock_minimo,
+            'precio_compra' => $this->precio_compra,
+            'precio_venta' => $this->precio_venta,
+            'proveedor_id' => $this->proveedor_id ?: null,
+            'activo' => $this->activo,
+        ]);
+
+        session()->flash('message', 'Repuesto actualizado exitosamente.');
+        $this->closeModal();
+        $this->dispatch('repuesto-actualizado');
+    }
+
+    public function delete($id)
+    {
+        Repuesto::findOrFail($id)->delete();
+        session()->flash('message', 'Repuesto eliminado exitosamente.');
+        $this->dispatch('repuesto-actualizado');
+    }
+
+    public function render()
+    {
+        $categorias = CategoriaRepuesto::all();
+        $proveedores = Proveedor::all();
+        return view('livewire.repuestos.editar', compact('categorias', 'proveedores'));
+    }
+}
